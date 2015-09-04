@@ -28,6 +28,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.Time;
@@ -110,6 +111,15 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
             mTime = new Time();
+
+
+            // Hack to keep display alive
+            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+
+            PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK,
+                    "WatchFaceWakelockTag"); // note WakeLock spelling
+
+            wakeLock.acquire();
         }
 
         @Override
