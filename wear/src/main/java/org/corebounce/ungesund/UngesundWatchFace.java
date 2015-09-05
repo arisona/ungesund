@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2015 Corebounce Association
  * Copyright (C) 2014 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,14 +31,11 @@ import android.text.format.Time;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
+import org.corebounce.ungesund.gesundlet.IGesundlet;
+
 import java.lang.ref.WeakReference;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 
-/**
- * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
- * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
- */
 public class UngesundWatchFace extends CanvasWatchFaceService {
 
     static final int MSG_ID_UPDATE_TIME = 0;
@@ -63,29 +61,29 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private static final long INTERACTIVE_UPDATE_RATE_MS = 500;
+    private static final long FRAME_INTERVAL_MS = 500;
+    private static final float FRAME_RATE_FPS = 1000.0f / FRAME_INTERVAL_MS;
 
     private static final Typeface NORMAL_TYPEFACE = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
-
-    /**
-     * Handler message id for updating the time periodically in interactive mode.
-     */
+    private float startTime = 0.001f * System.currentTimeMillis();
 
     @Override
     public Engine onCreateEngine() {
+        // TODO: Bluetooth handling here .... registerReceiver();
+        // BluetoothLEScanner, others?
+        // https://developer.android.com/guide/topics/connectivity/bluetooth-le.html
+
         return new Engine();
     }
 
     private class Engine extends CanvasWatchFaceService.Engine {
         final Handler updateHandler = new UpdateHandler(this);
 
+        IGesundlet gesundlet;
+
         Paint backgroundPaint;
         Paint textPaint;
-
-        Time time;
-
-        int counter;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -107,9 +105,6 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
             textPaint.setTypeface(NORMAL_TYPEFACE);
             textPaint.setAntiAlias(true);
 
-            time = new Time();
-
-
             // Hack to keep display alive
             PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
             PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "WatchFaceWakelockTag");
@@ -125,14 +120,6 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
         @Override
         public void onVisibilityChanged(boolean visible) {
             super.onVisibilityChanged(visible);
-
-            if (visible) {
-                time.clear(TimeZone.getDefault().getID());
-                time.setToNow();
-            }
-
-            // Whether the timer should be running depends on whether we're visible (as well as
-            // whether we're in ambient mode), so we may need to start or stop the timer.
             updateTimer();
         }
 
@@ -147,45 +134,28 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
         }
 
         @Override
-        public void onTimeTick() {
-            super.onTimeTick();
-            invalidate();
-        }
-
-        @Override
-        public void onAmbientModeChanged(boolean inAmbientMode) {
-            super.onAmbientModeChanged(inAmbientMode);
-            invalidate();
-            updateTimer();
-        }
-
-        @Override
         public void onDraw(Canvas canvas, Rect bounds) {
-            // Draw the background.
+            float time = 0.001f * System.currentTimeMillis() - startTime;
+
+            // Clear background
             canvas.drawRect(0, 0, bounds.width(), bounds.height(), backgroundPaint);
 
-            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
-            time.setToNow();
-            String text = String.format("%d:%02d:%02d:%d", time.hour, time.minute, time.second, counter++);
-            canvas.drawText(text, 10, 100, textPaint);
-        }
-
-        boolean shouldTimerBeRunning() {
-            return isVisible();
+            // Paint current Gesundlet
+            gesundlet.draw(canvas, bounds, time, FRAME_RATE_FPS);
         }
 
         void updateTimer() {
             updateHandler.removeMessages(MSG_ID_UPDATE_TIME);
-            if (shouldTimerBeRunning()) {
+            if (isVisible()) {
                 updateHandler.sendEmptyMessage(MSG_ID_UPDATE_TIME);
             }
         }
 
         void handleUpdateTimeMessage() {
             invalidate();
-            if (shouldTimerBeRunning()) {
+            if (isVisible()) {
                 long timeMs = System.currentTimeMillis();
-                long delayMs = INTERACTIVE_UPDATE_RATE_MS - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
+                long delayMs = FRAME_INTERVAL_MS - (timeMs % FRAME_INTERVAL_MS);
                 updateHandler.sendEmptyMessageDelayed(MSG_ID_UPDATE_TIME, delayMs);
             }
         }
