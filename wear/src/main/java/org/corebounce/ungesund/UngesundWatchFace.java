@@ -21,24 +21,42 @@ import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.text.format.Time;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
 import org.corebounce.ungesund.gesundlet.IGesundlet;
+import org.corebounce.ungesund.gesundlet.RadarGesundlet;
 
 import java.lang.ref.WeakReference;
-import java.util.TimeZone;
 
 public class UngesundWatchFace extends CanvasWatchFaceService {
+    public static final class Context {
+        private final RectF bounds;
+        private final Resources resources;
 
-    static final int MSG_ID_UPDATE_TIME = 0;
+        private Context(RectF bounds, Resources resources) {
+            this.bounds = bounds;
+            this.resources = resources;
+        }
+
+        public RectF getBounds() {
+            return bounds;
+        }
+
+        public int getColor(int id) {
+            return resources.getColor(id);
+        }
+    }
+
+
+    private static final int MSG_ID_UPDATE_TIME = 0;
 
     private static class UpdateHandler extends Handler {
 
@@ -61,7 +79,7 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private static final long FRAME_INTERVAL_MS = 500;
+    private static final long FRAME_INTERVAL_MS = 20;
     private static final float FRAME_RATE_FPS = 1000.0f / FRAME_INTERVAL_MS;
 
     private static final Typeface NORMAL_TYPEFACE = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
@@ -80,10 +98,13 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
     private class Engine extends CanvasWatchFaceService.Engine {
         final Handler updateHandler = new UpdateHandler(this);
 
-        IGesundlet gesundlet;
+        Context context;
 
-        Paint backgroundPaint;
+
+        Paint background;
         Paint textPaint;
+
+        IGesundlet gesundlet;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -95,13 +116,16 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
                     .setShowSystemUiTime(false)
                     .build());
 
-            Resources resources = UngesundWatchFace.this.getResources();
+            RectF bounds = new RectF(0, 0, getDesiredMinimumWidth(), getDesiredMinimumHeight());
+            context = new Context(bounds, UngesundWatchFace.this.getResources());
 
-            backgroundPaint = new Paint();
-            backgroundPaint.setColor(resources.getColor(R.color.ungesund_background));
+            gesundlet = new RadarGesundlet(context);
+
+            background = new Paint();
+            background.setColor(context.getColor(R.color.ungesund_background));
 
             textPaint = new Paint();
-            textPaint.setColor(resources.getColor(R.color.ungesund_foreground));
+            textPaint.setColor(context.getColor(R.color.ungesund_foreground));
             textPaint.setTypeface(NORMAL_TYPEFACE);
             textPaint.setAntiAlias(true);
 
@@ -138,10 +162,10 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
             float time = 0.001f * System.currentTimeMillis() - startTime;
 
             // Clear background
-            canvas.drawRect(0, 0, bounds.width(), bounds.height(), backgroundPaint);
+            canvas.drawRect(0, 0, bounds.width(), bounds.height(), background);
 
             // Paint current Gesundlet
-            gesundlet.draw(canvas, bounds, time, FRAME_RATE_FPS);
+            gesundlet.draw(canvas, new RectF(bounds), time, FRAME_RATE_FPS);
         }
 
         void updateTimer() {

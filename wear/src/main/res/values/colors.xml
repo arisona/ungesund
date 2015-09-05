@@ -2,4 +2,7 @@
 <resources>
     <color name="ungesund_background">#000000</color>
     <color name="ungesund_foreground">#ffffff</color>
+
+    <color name="radar_start">#00ff00</color>
+    <color name="radar_end">#0000ff</color>
 </resources>
