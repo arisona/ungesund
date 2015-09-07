@@ -8,10 +8,15 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.SweepGradient;
 
-import org.corebounce.ungesund.R;
 import org.corebounce.ungesund.UngesundWatchFace;
 
 public class RadarGesundlet implements IGesundlet {
+    private static final int COLOR_RADAR = Color.argb(255, 255, 0, 0);
+    private static final int COLOR_DECOR = Color.argb(255, 200, 0, 0);
+    private static final int COLOR_BLUR = Color.argb(255, 127, 0, 0);
+
+    private static final float SPEED = 360.0f; // degrees/s
+
     private Matrix rotation;
     private SweepGradient gradient;
     private Paint paint;
@@ -20,17 +25,10 @@ public class RadarGesundlet implements IGesundlet {
 
         rotation = new Matrix();
 
-        //gradient = new SweepGradient(context.getBounds().centerX(), context.getBounds().centerY(),
-        //                             context.getColor(R.color.radar_start), context.getColor(R.color.radar_end));
-
         RectF bounds = context.getBounds();
-        float startPos = 0;
-        float endPos = 0.4f;
-        int startColor = Color.RED;
-        int endColor = Color.BLACK;
         gradient = new SweepGradient(bounds.centerX(), bounds.centerY(),
-                new int[] { endColor, endColor, startColor, endColor },
-                new float[] { startPos, endPos, 0.99f, 1 });
+                new int[] { Color.BLACK, Color.BLACK, COLOR_BLUR, COLOR_RADAR, Color.BLACK },
+                new float[] { 0.0f , 0.5f, 0.98f, 0.99f, 1 });
 
         paint = new Paint();
         paint.setShader(gradient);
@@ -39,7 +37,8 @@ public class RadarGesundlet implements IGesundlet {
 
     @Override
     public void draw(Canvas canvas, RectF bounds, float time, float rate) {
-        rotation.postRotate(4, bounds.centerX(), bounds.centerY());
+        float delta = SPEED / rate;
+        rotation.postRotate(delta, bounds.centerX(), bounds.centerY());
         gradient.setLocalMatrix(rotation);
         canvas.drawOval(bounds, paint);
     }
