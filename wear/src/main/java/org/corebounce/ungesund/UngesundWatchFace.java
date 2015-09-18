@@ -79,7 +79,7 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private static final long FRAME_INTERVAL_MS = 10;
+    private static final long FRAME_INTERVAL_MS = 20;
     private static final float FRAME_RATE_FPS = 1000.0f / FRAME_INTERVAL_MS;
 
     private static final Typeface NORMAL_TYPEFACE = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
