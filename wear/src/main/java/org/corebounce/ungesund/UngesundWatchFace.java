@@ -106,6 +106,8 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
 
         IGesundlet gesundlet;
 
+        int frameCount;
+
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
@@ -130,9 +132,7 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
             textPaint.setAntiAlias(true);
 
             // Hack to keep display alive
-            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-            PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "WatchFaceWakelockTag");
-            wakeLock.acquire();
+            acquireWakeLock();
         }
 
         @Override
@@ -176,12 +176,24 @@ public class UngesundWatchFace extends CanvasWatchFaceService {
         }
 
         void handleUpdateTimeMessage() {
+            frameCount = (frameCount + 1) % 100;
+            if (frameCount == 0) {
+                acquireWakeLock();
+            }
+
+
             invalidate();
             if (isVisible()) {
                 long timeMs = System.currentTimeMillis();
                 long delayMs = FRAME_INTERVAL_MS - (timeMs % FRAME_INTERVAL_MS);
                 updateHandler.sendEmptyMessageDelayed(MSG_ID_UPDATE_TIME, delayMs);
             }
+        }
+
+        void acquireWakeLock() {
+            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+            PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "WatchFaceWakelockTag");
+            wakeLock.acquire();
         }
     }
 }

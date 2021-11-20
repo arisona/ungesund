@@ -76,7 +76,7 @@ public class RadarGesundlet implements IGesundlet {
         canvas.drawOval(bounds, radarPaint);
 
         for (Point point : points) {
-            float distance = 255 - ((angle - point.alpha) % 360f) / 360f * 127f;
+            float distance = 255 - ((angle - point.alpha) % 360f) / 360f * 200f;
 
             if (distance > 253) {
                 point.alpha = clamp(0, 360, point.alpha + POINT_ALPHA_SPEED * (Math.random() > 0.5 ? 1 : -1));
